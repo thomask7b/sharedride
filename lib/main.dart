@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sharedride/config.dart';
 
 import 'screens/login.dart';
 
@@ -9,18 +10,6 @@ class SharedRideApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const appTitle = 'Shared Ride';
-
-    return MaterialApp(
-      title: appTitle,
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text(appTitle),
-        ),
-        body: const LoginFormScreen(),
-      ),
-    );
+    return const MaterialApp(title: appName, home: LoginFormScreen());
   }
 }
-
-
