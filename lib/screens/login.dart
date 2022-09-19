@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:sharedride/services/authentication_service.dart';
+import 'package:sharedride/services/users_service.dart';
 import 'package:sharedride/screens/sharedride.dart';
 import 'package:sharedride/models/user.dart';
+
+import '../config.dart';
+import '../utils.dart';
+import 'create_account.dart';
 
 class LoginFormScreen extends StatefulWidget {
   const LoginFormScreen({Key? key}) : super(key: key);
@@ -24,73 +28,86 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(20.0),
-      child: Column(
-        children: [
-          const Text("Bienvenu sur Shared Ride"),
-          Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextFormField(
-                  controller: _usernameController,
-                  decoration: const InputDecoration(
-                    border: UnderlineInputBorder(),
-                    labelText: "Entrez votre nom d'utilisateur",
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      appBar: AppBar(
+        title: const Text(appName),
+      ),
+      body: Container(
+        margin: const EdgeInsets.all(20.0),
+        child: Column(
+          children: [
+            const Text("Bienvenu sur Shared Ride"),
+            Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextFormField(
+                    controller: _usernameController,
+                    decoration: const InputDecoration(
+                      border: UnderlineInputBorder(),
+                      labelText: "Entrez votre nom d'utilisateur",
+                    ),
+                    validator: (value) {
+                      if (!isValidUsername(value)) {
+                        return "Ce nom d'utilsiateur est invalide";
+                      }
+                      return null;
+                    },
                   ),
-                  validator: (value) {
-                    if (!_isValidUsername(value)) {
-                      return "Ce nom d'utilsiateur est invalide";
-                    }
-                    return null;
-                  },
-                ),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    border: UnderlineInputBorder(),
-                    labelText: "Entrez votre mot de passe",
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      border: UnderlineInputBorder(),
+                      labelText: "Entrez votre mot de passe",
+                    ),
+                    validator: (value) {
+                      if (!isValidPassword(value)) {
+                        return "Le mot de passe ne peut pas être vide";
+                      }
+                      return null;
+                    },
                   ),
-                  validator: (value) {
-                    if (value!.isEmpty) {
-                      return "Le mot de passe ne peut pas être vide";
-                    }
-                    return null;
-                  },
-                ),
-                Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if (_formKey.currentState!.validate()) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content:
-                                      Text('Authentification en cours...')),
-                            );
-                            authenticate(User(_usernameController.text,
-                                    _passwordController.text))
-                                .then(_manageAuthenticationResponse);
-                          }
-                        },
-                        child: const Text('Se connecter'),
-                      ),
-                    )),
-              ],
+                  Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (_formKey.currentState!.validate()) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content:
+                                        Text('Authentification en cours...')),
+                              );
+                              authenticate(User(_usernameController.text,
+                                      _passwordController.text))
+                                  .then(_manageAuthenticationResponse);
+                            }
+                          },
+                          child: const Text('Se connecter'),
+                        ),
+                      )),
+                  Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            _navigateToCreateAccountScreen();
+                          },
+                          child: const Text('Créer un compte'),
+                        ),
+                      )),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
-  }
-
-  bool _isValidUsername(String? username) {
-    return username != null && username.isNotEmpty && !username.contains(" ");
   }
 
   _manageAuthenticationResponse(bool isAuthenticated) {
@@ -100,12 +117,21 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
       _navigateToSharedRideScreen(
           User(_usernameController.text, _passwordController.text));
     } else {
-      print("Echec lors de l'authentification.");
+      const failedAuthMessage = "Echec lors de l'authentification.";
+      print(failedAuthMessage);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(failedAuthMessage)),
+      );
     }
   }
 
   _navigateToSharedRideScreen(User user) {
     Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => SharedRideScreen(user: user)));
+  }
+
+  _navigateToCreateAccountScreen() {
+    Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => const CreateAccountScreen()));
   }
 }
