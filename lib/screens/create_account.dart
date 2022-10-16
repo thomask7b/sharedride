@@ -1,7 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:sharedride/config.dart';
 import 'package:sharedride/models/user.dart';
-import 'package:sharedride/screens/login.dart';
 import 'package:sharedride/services/users_service.dart';
 
 import '../utils.dart';
@@ -10,7 +10,7 @@ class CreateAccountScreen extends StatefulWidget {
   const CreateAccountScreen({Key? key}) : super(key: key);
 
   @override
-  _CreateAccountScreenState createState() => _CreateAccountScreenState();
+  State<CreateAccountScreen> createState() => _CreateAccountScreenState();
 }
 
 class _CreateAccountScreenState extends State<CreateAccountScreen> {
@@ -114,14 +114,18 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     ScaffoldMessenger.of(context).clearSnackBars();
     if (isCreated) {
       const successMessage = "Création du compte réussie.";
-      print(successMessage);
+      if (kDebugMode) {
+        print(successMessage);
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text(successMessage)),
       );
       _navigateToLoginFormScreen(
           User(_usernameController.text, _passwordController.text));
     } else {
-      print("Echec lors de l'authentification.");
+      if (kDebugMode) {
+        print("Echec lors de l'authentification.");
+      }
       _usernameController.text = "";
       _passwordController.text = "";
     }

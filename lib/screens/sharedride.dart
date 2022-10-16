@@ -9,7 +9,7 @@ class SharedRideScreen extends StatefulWidget {
   const SharedRideScreen({Key? key, required this.user}) : super(key: key);
 
   @override
-  _SharedRideScreenState createState() => _SharedRideScreenState();
+  State<SharedRideScreen> createState() => _SharedRideScreenState();
 }
 
 class _SharedRideScreenState extends State<SharedRideScreen> {

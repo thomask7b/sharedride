@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:sharedride/services/users_service.dart';
 import 'package:sharedride/screens/sharedride.dart';
@@ -11,7 +12,7 @@ class LoginFormScreen extends StatefulWidget {
   const LoginFormScreen({Key? key}) : super(key: key);
 
   @override
-  _LoginFormScreenState createState() => _LoginFormScreenState();
+  State<LoginFormScreen> createState() => _LoginFormScreenState();
 }
 
 class _LoginFormScreenState extends State<LoginFormScreen> {
@@ -113,12 +114,16 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
   _manageAuthenticationResponse(bool isAuthenticated) {
     ScaffoldMessenger.of(context).clearSnackBars();
     if (isAuthenticated) {
-      print("Authentification réussie.");
+      if (kDebugMode) {
+        print("Authentification réussie.");
+      }
       _navigateToSharedRideScreen(
           User(_usernameController.text, _passwordController.text));
     } else {
       const failedAuthMessage = "Echec lors de l'authentification.";
-      print(failedAuthMessage);
+      if (kDebugMode) {
+        print(failedAuthMessage);
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text(failedAuthMessage)),
       );
