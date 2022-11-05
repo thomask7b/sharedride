@@ -3,5 +3,5 @@ bool isValidUsername(String? username) {
 }
 
 bool isValidPassword(String? password) {
-  return password!.isNotEmpty;
+  return password != null && password.isNotEmpty && !password.contains(" ");
 }
