@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:sharedride/services/users_service.dart';
-import 'package:sharedride/screens/sharedride.dart';
 import 'package:sharedride/models/user.dart';
+import 'package:sharedride/screens/sharedride.dart';
 
 import '../config.dart';
+import '../services/auth_service.dart';
 import '../utils.dart';
 import 'create_account.dart';
 
@@ -51,8 +51,10 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                       labelText: "Entrez votre nom d'utilisateur",
                     ),
                     validator: (value) {
-                      if (!isValidUsername(value)) {
-                        return "Ce nom d'utilsiateur est invalide";
+                      final trimmedValue = value!.trim();
+                      _usernameController.text = trimmedValue;
+                      if (!isValidUsername(trimmedValue)) {
+                        return "Ce nom d'utilisateur est invalide";
                       }
                       return null;
                     },
@@ -132,7 +134,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
 
   _navigateToSharedRideScreen(User user) {
     Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => SharedRideScreen(user: user)));
+        MaterialPageRoute(builder: (context) => const SharedRideScreen()));
   }
 
   _navigateToCreateAccountScreen() {
