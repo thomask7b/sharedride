@@ -67,11 +67,10 @@ class _MapScreenState extends State<MapScreen> {
             future: _sharedRide,
             builder:
                 (BuildContext context, AsyncSnapshot<SharedRide?> snapshot) {
-              List<Widget> children;
               if (snapshot.hasData) {
                 return _buildMap(snapshot.data!);
               } else if (snapshot.hasError) {
-                children = <Widget>[
+                return Column(children: [
                   const Icon(
                     Icons.error_outline,
                     color: Colors.red,
@@ -81,21 +80,17 @@ class _MapScreenState extends State<MapScreen> {
                     padding: const EdgeInsets.only(top: 16),
                     child: Text('Error: ${snapshot.error}'),
                   ),
-                ];
+                ]);
               } else {
-                children = const <Widget>[
-                  SizedBox(
-                    width: 60,
-                    height: 60,
-                    child: CircularProgressIndicator(), //TODO centrer
-                  ),
-                  Padding(
-                    padding: EdgeInsets.only(top: 16),
-                    child: Text('Chargement du shared ride...'),
-                  ),
-                ];
+                return Center(
+                    child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: const [
+                      CircularProgressIndicator(),
+                      Text("Chargement du shared ride...")
+                    ]));
               }
-              return Column(children: children);
             }));
   }
 

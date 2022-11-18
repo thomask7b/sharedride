@@ -16,7 +16,10 @@ User? get authenticatedUser => _authenticatedUser;
 
 Future<bool> authenticateSavedUser() async {
   _authenticatedUser ??= await fetchUser();
-  return await authenticate(authenticatedUser!);
+  if (authenticatedUser != null) {
+    return await authenticate(authenticatedUser!);
+  }
+  return false;
 }
 
 Future<bool> authenticate(User user) async {
@@ -49,6 +52,5 @@ Future<bool> authenticate(User user) async {
 Future<void> logout() async {
   _sessionId = null;
   _authenticatedUser = null;
-  await deleteSharedRideId();
   await deleteUser();
 }

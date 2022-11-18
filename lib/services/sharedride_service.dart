@@ -14,7 +14,6 @@ ObjectId? _actualSharedRideId;
 ObjectId? get actualSharedRideId => _actualSharedRideId;
 
 Future<bool> hasSharedRide() async {
-  //TODO spinner
   if (_actualSharedRideId != null) {
     return true;
   } else {
