@@ -21,6 +21,17 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
   final _passwordController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    authenticateSavedUser().then((isConnected) {
+      if (isConnected) {
+        //TODO spinner
+        _navigateToSharedRideScreen();
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
@@ -88,6 +99,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                               authenticate(User(_usernameController.text,
                                       _passwordController.text))
                                   .then(_manageAuthenticationResponse);
+                              //TODO spinner
                             }
                           },
                           child: const Text('Se connecter'),
@@ -119,8 +131,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
       if (kDebugMode) {
         print("Authentification réussie.");
       }
-      _navigateToSharedRideScreen(
-          User(_usernameController.text, _passwordController.text));
+      _navigateToSharedRideScreen();
     } else {
       const failedAuthMessage = "Echec lors de l'authentification.";
       if (kDebugMode) {
@@ -132,7 +143,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
     }
   }
 
-  _navigateToSharedRideScreen(User user) {
+  _navigateToSharedRideScreen() {
     Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const SharedRideScreen()));
   }
