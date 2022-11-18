@@ -25,10 +25,7 @@ Future<bool> hasSharedRide() async {
 Future<bool> createSharedRide(List<String> steps) async {
   final response = await http.post(
     Uri.parse('$hostUrl/sharedride/create'),
-    headers: <String, String>{
-      'Cookie': sessionId!,
-      'Content-Type': 'application/json; charset=UTF-8',
-    },
+    headers: <String, String>{'Cookie': sessionId!}..addAll(defaultHeaders),
     body: jsonEncode(steps),
   );
   if (kDebugMode) {

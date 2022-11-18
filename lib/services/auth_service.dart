@@ -25,9 +25,7 @@ Future<bool> authenticateSavedUser() async {
 Future<bool> authenticate(User user) async {
   final response = await http.post(
     Uri.parse('$hostUrl/auth'),
-    headers: <String, String>{
-      'Content-Type': 'application/json; charset=UTF-8',
-    },
+    headers: defaultHeaders,
     body: jsonEncode(
         <String, String>{'name': user.name, 'password': user.password}),
   );
