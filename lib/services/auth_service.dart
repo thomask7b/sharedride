@@ -5,8 +5,19 @@ import 'package:http/http.dart' as http;
 import 'package:sharedride/config.dart';
 import 'package:sharedride/models/user.dart';
 
-String? sessionId;
-User? authenticatedUser;
+import 'db_service.dart';
+
+String? _sessionId;
+User? _authenticatedUser;
+
+String? get sessionId => _sessionId;
+
+User? get authenticatedUser => _authenticatedUser;
+
+Future<bool> authenticateSavedUser() async {
+  _authenticatedUser ??= await fetchUser();
+  return await authenticate(authenticatedUser!);
+}
 
 Future<bool> authenticate(User user) async {
   final response = await http.post(
@@ -21,14 +32,23 @@ Future<bool> authenticate(User user) async {
     print("Requête d'authentification envoyée.");
   }
   if (response.statusCode == 200) {
-    sessionId = response.headers['set-cookie'];
+    _sessionId = response.headers['set-cookie'];
     if (kDebugMode) {
       print("Authentification réussie.");
     }
-    authenticatedUser = user;
+    _authenticatedUser = user;
+    saveUser(_authenticatedUser!);
     return true;
   }
-  sessionId = null;
-  authenticatedUser = null;
+  deleteUser();
+  _sessionId = null;
+  _authenticatedUser = null;
   return false;
+}
+
+Future<void> logout() async {
+  _sessionId = null;
+  _authenticatedUser = null;
+  await deleteSharedRideId();
+  await deleteUser();
 }

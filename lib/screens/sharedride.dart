@@ -18,6 +18,17 @@ class _SharedRideScreenState extends State<SharedRideScreen> {
   final List<String> _steps = [];
 
   @override
+  void initState() {
+    super.initState();
+    hasSharedRide().then((hasSharedRide) {
+      if (hasSharedRide) {
+        //TODO spinner
+        _navigateToMapScreen();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text(appName)),

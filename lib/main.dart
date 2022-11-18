@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:sharedride/config.dart';
+import 'package:sharedride/services/db_service.dart';
 
 import 'screens/login.dart';
 
-void main() => runApp(const SharedRideApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initDb();
+  runApp(const SharedRideApp());
+}
 
 class SharedRideApp extends StatelessWidget {
   const SharedRideApp({Key? key}) : super(key: key);

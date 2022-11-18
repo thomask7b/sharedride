@@ -5,10 +5,23 @@ import 'package:http/http.dart' as http;
 import 'package:objectid/objectid.dart';
 import 'package:sharedride/config.dart';
 import 'package:sharedride/services/auth_service.dart';
+import 'package:sharedride/services/db_service.dart';
 
 import '../models/sharedride.dart';
 
-ObjectId? actualSharedRideId;
+ObjectId? _actualSharedRideId;
+
+ObjectId? get actualSharedRideId => _actualSharedRideId;
+
+Future<bool> hasSharedRide() async {
+  //TODO spinner
+  if (_actualSharedRideId != null) {
+    return true;
+  } else {
+    _actualSharedRideId = await fetchSharedRideId();
+    return _actualSharedRideId != null;
+  }
+}
 
 Future<bool> createSharedRide(List<String> steps) async {
   final response = await http.post(
@@ -23,15 +36,16 @@ Future<bool> createSharedRide(List<String> steps) async {
     print("Requête de création du shared ride envoyée.");
   }
   if (response.statusCode == 201) {
-    actualSharedRideId = ObjectId.fromHexString(
+    _actualSharedRideId = ObjectId.fromHexString(
         response.headers["location"]!.replaceFirst("/sharedride/", ""));
     if (kDebugMode) {
       print(
           "Création du shared ride réussie. Son ID est : $actualSharedRideId");
     }
+    saveSharedRideId(_actualSharedRideId!);
     return true;
   }
-  actualSharedRideId = null;
+  _actualSharedRideId = null;
   return false;
 }
 
@@ -46,12 +60,20 @@ Future<SharedRide?> getSharedRide(ObjectId sharedRideId) async {
     print("Requête de récupération du shared ride envoyée.");
   }
   if (response.statusCode == 200) {
-    actualSharedRideId = sharedRideId;
+    _actualSharedRideId = sharedRideId;
     if (kDebugMode) {
       print("Réception du shared ride.");
     }
+    saveSharedRideId(_actualSharedRideId!);
     return SharedRide.fromJson(actualSharedRideId!, jsonDecode(response.body));
   }
-  actualSharedRideId = null;
+  deleteSharedRideId();
+  _actualSharedRideId = null;
   return null;
+}
+
+Future<void> exitSharedRide() async {
+  //TODO appeler route /sharedride/exit
+  _actualSharedRideId = null;
+  await deleteSharedRideId();
 }
