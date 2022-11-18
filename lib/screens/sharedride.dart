@@ -131,6 +131,7 @@ class _SharedRideScreenState extends State<SharedRideScreen> {
   }
 
   void _createSharedRideThenNavigateTo() {
+    //TODO spinner
     createSharedRide(_steps).then((isCreated) {
       if (isCreated) {
         _navigateToMapScreen();
