@@ -1,13 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_polyline_points/flutter_polyline_points.dart';
-import 'package:google_directions_api/google_directions_api.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:sharedride/models/sharedride.dart';
 import 'package:sharedride/screens/login.dart';
 import 'package:sharedride/screens/sharedride.dart';
 import 'package:sharedride/services/auth_service.dart';
+import 'package:sharedride/services/geo_service.dart';
 import 'package:sharedride/services/sharedride_service.dart';
 
 import '../config.dart';
@@ -21,9 +20,7 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   final Future<SharedRide?> _sharedRide = getSharedRide(actualSharedRideId!);
-  final Completer<GoogleMapController> _mapController = Completer();
-
-  final PolylinePoints _polylineUtils = PolylinePoints();
+  late final MapService mapService;
 
   @override
   void initState() {
@@ -95,11 +92,10 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Widget _buildMap(SharedRide sharedRide) {
-    final bounds = sharedRide.direction.routes!.first.bounds!;
     final startLocation =
         sharedRide.direction.routes!.first.legs!.first.startLocation!;
     final initialCameraPosition = CameraPosition(
-      target: _geoCoordToLatLng(startLocation),
+      target: geoCoordToLatLng(startLocation),
       zoom: 10,
     );
 
@@ -114,45 +110,16 @@ class _MapScreenState extends State<MapScreen> {
         polylines: {
           Polyline(
               polylineId: const PolylineId("route"),
-              points: _decodePolylines(sharedRide))
+              points: decodePolylines(sharedRide),
+              color: Colors.blue,
+              width: 6)
         },
         onMapCreated: (GoogleMapController controller) {
-          _mapController.complete(controller);
-          // _fitMapOnBounds(controller);
+          mapService = MapService(controller, sharedRide);
         }, //TODO recupérer location + clients stomp
       ),
       Align(alignment: Alignment.topCenter, child: _buildSteps(sharedRide))
     ]);
-  }
-
-  //TODO geo_service
-  List<LatLng> _decodePolylines(SharedRide sharedRide) {
-    return sharedRide.direction.routes!.first.legs!.first.steps!
-        .expand((step) => _polylineUtils
-            .decodePolyline(step.polyline!.points!)
-            .map((ptLatLng) => LatLng(ptLatLng.latitude, ptLatLng.longitude)))
-        .toList();
-  }
-
-  LatLng _centerOfGeoCoordBounds(GeoCoordBounds bounds) {
-    return LatLng(
-      (bounds.northeast.latitude + bounds.southwest.latitude) / 2,
-      (bounds.northeast.longitude + bounds.southwest.longitude) / 2,
-    );
-  }
-
-  LatLng _geoCoordToLatLng(GeoCoord geoCoord) {
-    return LatLng(geoCoord.latitude, geoCoord.longitude);
-  }
-
-  void _fitMapOnBounds(GoogleMapController controller, GeoCoordBounds bounds) {
-    final LatLngBounds latLngBounds = LatLngBounds(
-        southwest:
-            LatLng(bounds.southwest.latitude, bounds.southwest.longitude),
-        northeast:
-            LatLng(bounds.northeast.longitude, bounds.northeast.latitude));
-    controller.animateCamera(CameraUpdate.newLatLngBounds(latLngBounds, 50));
-    //BUG https://github.com/flutter/flutter/issues/109115
   }
 
   Widget _buildSteps(SharedRide sharedRide) {
@@ -163,7 +130,8 @@ class _MapScreenState extends State<MapScreen> {
       padding: const EdgeInsets.all(5.0),
       decoration: _stepsDecoration(),
       child: Text(
-        "${leg?.startAddress} > ${leg?.endAddress}",
+        overflow: TextOverflow.ellipsis,
+        "${leg?.startAddress?.split(',')[0]} > ${leg?.endAddress?.split(',')[0]}",
         style: const TextStyle(fontSize: 20.0),
       ),
     );
