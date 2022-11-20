@@ -2,9 +2,11 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_directions_api/google_directions_api.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import '../models/location.dart';
 import '../models/sharedride.dart';
 
 enum MODE { tracking, overview }
@@ -54,6 +56,12 @@ LatLng centerOfGeoCoordBounds(GeoCoordBounds bounds) {
 LatLng geoCoordToLatLng(GeoCoord geoCoord) {
   return LatLng(geoCoord.latitude, geoCoord.longitude);
 }
+
+LatLng locationToLatLng(Location location) =>
+    LatLng(location.latitude, location.longitude);
+
+LatLng positionToLatLng(Position position) =>
+    LatLng(position.latitude, position.longitude);
 
 Future<BitmapDescriptor> iconToBitmapDescriptor(IconData iconData) async {
   final pictureRecorder = PictureRecorder();

@@ -10,6 +10,7 @@ import 'package:sharedride/services/auth_service.dart';
 import 'package:sharedride/services/geo_service.dart';
 import 'package:sharedride/services/location_service.dart';
 import 'package:sharedride/services/sharedride_service.dart';
+import 'package:sharedride/services/stomp_service.dart';
 
 import '../config.dart';
 
@@ -34,38 +35,46 @@ class _MapScreenState extends State<MapScreen> {
     super.initState();
     initLocationService().then((initPosition) {
       _currentPosition = initPosition;
-      _initMarkers();
-      positionStream().listen((streamPosition) {
-        _currentPosition = streamPosition;
-        _updateMarker(_currentLocationMarkerId, _currentPosition);
+      _initMarker(_currentLocationMarkerId, positionToLatLng(initPosition),
+              Icons.my_location)
+          .then((_) {
+        positionStream().listen((streamPosition) {
+          _currentPosition = streamPosition;
+        });
+        _updateMarker(
+            _currentLocationMarkerId, positionToLatLng(_currentPosition));
+        startReceiveClient((userLocation) => _updateMarker(
+            MarkerId(userLocation.key), locationToLatLng(userLocation.value)));
       });
     });
   }
 
-  void _initMarkers() {
-    iconToBitmapDescriptor(Icons.my_location).then((icon) {
+  @override
+  void dispose() {
+    stopReceiveClient();
+    super.dispose();
+  }
+
+  Future<void> _initMarker(
+      MarkerId id, LatLng latLng, IconData iconData) async {
+    await iconToBitmapDescriptor(iconData).then((icon) {
       setState(() {
-        _markers.add(Marker(
-            markerId: _currentLocationMarkerId,
-            position: _positionToLatLng(_currentPosition),
-            icon: icon));
+        _markers.add(Marker(markerId: id, position: latLng, icon: icon));
       });
     });
   }
 
-  void _updateMarker(MarkerId id, Position position) {
-    final marker = _markers.firstWhere((m) => m.markerId == id);
-    setState(() {
-      _markers.remove(marker);
-      _markers.add(Marker(
-          markerId: id,
-          position: _positionToLatLng(position),
-          icon: marker.icon));
-    });
+  void _updateMarker(MarkerId id, LatLng latLng) {
+    if (_markers.any((m) => m.markerId == id)) {
+      final marker = _markers.firstWhere((m) => m.markerId == id);
+      setState(() {
+        _markers.remove(marker);
+        _markers.add(Marker(markerId: id, position: latLng, icon: marker.icon));
+      });
+    } else {
+      _initMarker(id, latLng, Icons.share_location);
+    }
   }
-
-  LatLng _positionToLatLng(Position position) =>
-      LatLng(position.latitude, position.longitude);
 
   @override
   Widget build(BuildContext context) {
@@ -157,7 +166,7 @@ class _MapScreenState extends State<MapScreen> {
         markers: _markers,
         onMapCreated: (GoogleMapController controller) {
           _mapService = MapService(controller, sharedRide);
-        }, //TODO clients stomp
+        },
       ),
       Align(alignment: Alignment.topCenter, child: _buildSteps(sharedRide))
     ]);

@@ -6,4 +6,8 @@ class Location {
     this.latitude,
     this.longitude,
   );
+
+  Location.fromMap(Map<String, dynamic> map)
+      : latitude = map['latitude'],
+        longitude = map['longitude'];
 }
