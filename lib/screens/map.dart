@@ -1,12 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:sharedride/models/sharedride.dart';
 import 'package:sharedride/screens/login.dart';
 import 'package:sharedride/screens/sharedride.dart';
 import 'package:sharedride/services/auth_service.dart';
 import 'package:sharedride/services/geo_service.dart';
+import 'package:sharedride/services/location_service.dart';
 import 'package:sharedride/services/sharedride_service.dart';
 
 import '../config.dart';
@@ -20,12 +22,50 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   final Future<SharedRide?> _sharedRide = getSharedRide(actualSharedRideId!);
-  late final MapService mapService;
+
+  late final MapService _mapService;
+  late Position _currentPosition;
+
+  static const MarkerId _currentLocationMarkerId = MarkerId("currentLocation");
+  final Set<Marker> _markers = {};
 
   @override
   void initState() {
     super.initState();
+    initLocationService().then((initPosition) {
+      _currentPosition = initPosition;
+      _initMarkers();
+      positionStream().listen((streamPosition) {
+        _currentPosition = streamPosition;
+        _updateMarker(_currentLocationMarkerId, _currentPosition);
+      });
+    });
   }
+
+  void _initMarkers() {
+    iconToBitmapDescriptor(Icons.my_location).then((icon) {
+      setState(() {
+        _markers.add(Marker(
+            markerId: _currentLocationMarkerId,
+            position: _positionToLatLng(_currentPosition),
+            icon: icon));
+      });
+    });
+  }
+
+  void _updateMarker(MarkerId id, Position position) {
+    final marker = _markers.firstWhere((m) => m.markerId == id);
+    setState(() {
+      _markers.remove(marker);
+      _markers.add(Marker(
+          markerId: id,
+          position: _positionToLatLng(position),
+          icon: marker.icon));
+    });
+  }
+
+  LatLng _positionToLatLng(Position position) =>
+      LatLng(position.latitude, position.longitude);
 
   @override
   Widget build(BuildContext context) {
@@ -92,10 +132,10 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Widget _buildMap(SharedRide sharedRide) {
-    final startLocation =
-        sharedRide.direction.routes!.first.legs!.first.startLocation!;
+    final startLocation = geoCoordToLatLng(
+        sharedRide.direction.routes!.first.legs!.first.startLocation!);
     final initialCameraPosition = CameraPosition(
-      target: geoCoordToLatLng(startLocation),
+      target: startLocation,
       zoom: 10,
     );
 
@@ -109,14 +149,15 @@ class _MapScreenState extends State<MapScreen> {
         scrollGesturesEnabled: true,
         polylines: {
           Polyline(
-              polylineId: const PolylineId("route"),
+              polylineId: const PolylineId("ride"),
               points: decodePolylines(sharedRide),
               color: Colors.blue,
               width: 6)
         },
+        markers: _markers,
         onMapCreated: (GoogleMapController controller) {
-          mapService = MapService(controller, sharedRide);
-        }, //TODO recupérer location + clients stomp
+          _mapService = MapService(controller, sharedRide);
+        }, //TODO clients stomp
       ),
       Align(alignment: Alignment.topCenter, child: _buildSteps(sharedRide))
     ]);
