@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_google_places/flutter_google_places.dart';
 import 'package:google_maps_webservice/places.dart';
+import 'package:objectid/objectid.dart';
 import 'package:sharedride/api_keys.dart';
 import 'package:sharedride/screens/progressible_state.dart';
 import 'package:sharedride/services/sharedride_service.dart';
@@ -19,6 +20,7 @@ class SharedRideScreen extends StatefulWidget {
 
 class _SharedRideScreenState extends ProgressibleState<SharedRideScreen> {
   final List<String> _steps = [];
+  final TextEditingController _dialogController = TextEditingController();
 
   @override
   void initState() {
@@ -86,8 +88,11 @@ class _SharedRideScreenState extends ProgressibleState<SharedRideScreen> {
                         child: const Text('Créer un shared ride')),
                     const SizedBox(height: 20),
                     ElevatedButton(
-                        onPressed: () => _navigateToMapScreen(),
-                        //TODO AlertDialog to get sharedRideId
+                        onPressed: () => showDialog(
+                            context: context,
+                            builder: (context) {
+                              return _buildDialog();
+                            }),
                         child: const Text('Rejoindre un shared ride')),
                   ],
                 ),
@@ -125,6 +130,38 @@ class _SharedRideScreenState extends ProgressibleState<SharedRideScreen> {
       final String tile = _steps.removeAt(oldIndex);
       _steps.insert(index, tile);
     });
+  }
+
+  Widget _buildDialog() {
+    return AlertDialog(
+      title: const Text('Rejoindre un shared ride.'),
+      content: TextField(
+        controller: _dialogController,
+        decoration:
+            const InputDecoration(hintText: "Entrez un ID de shared ride :"),
+      ),
+      actions: <Widget>[
+        MaterialButton(
+          color: Colors.red,
+          textColor: Colors.white,
+          child: const Text('Annuler'),
+          onPressed: () {
+            setState(() {
+              Navigator.pop(context);
+            });
+          },
+        ),
+        MaterialButton(
+          color: Colors.green,
+          textColor: Colors.white,
+          child: const Text('OK'),
+          onPressed: () {
+            _getSharedRideThenNavigateTo(
+                ObjectId.fromHexString(_dialogController.text));
+          },
+        ),
+      ],
+    );
   }
 
   Future<void> _showInputAutoComplete() async {
@@ -165,6 +202,19 @@ class _SharedRideScreenState extends ProgressibleState<SharedRideScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text("Erreur lors de la création du shared ride.")));
+      }
+      hideProgress();
+    });
+  }
+
+  void _getSharedRideThenNavigateTo(ObjectId sharedRideId) {
+    showProgress();
+    getSharedRide(sharedRideId).then((sharedRide) {
+      if (sharedRide != null) {
+        _navigateToMapScreen();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Erreur lors de la récupération du shared ride.")));
       }
       hideProgress();
     });
