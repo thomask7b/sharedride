@@ -58,10 +58,13 @@ Future<SharedRide?> getSharedRide(ObjectId sharedRideId) async {
   if (response.statusCode == 200) {
     _actualSharedRideId = sharedRideId;
     if (kDebugMode) {
-      print("Réception du shared ride.");
+      print("Réception du shared ride $sharedRideId.");
     }
     saveSharedRideId(_actualSharedRideId!);
-    return SharedRide.fromJson(actualSharedRideId!, jsonDecode(response.body));
+    return SharedRide.fromJson(
+        actualSharedRideId!,
+        jsonDecode(
+            response.body)); //TODO sauver en BDD pour éviter multiples appels
   }
   deleteSharedRideId();
   _actualSharedRideId = null;

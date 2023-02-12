@@ -13,6 +13,7 @@ import 'package:sharedride/services/sharedride_service.dart';
 import 'package:sharedride/services/stomp_service.dart';
 
 import '../config.dart';
+import '../models/location.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({Key? key}) : super(key: key);
@@ -33,6 +34,7 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
+    startEmitClient();
     initLocationService().then((initPosition) {
       _currentPosition = initPosition;
       _initMarker(_currentLocationMarkerId, positionToLatLng(initPosition),
@@ -40,11 +42,14 @@ class _MapScreenState extends State<MapScreen> {
           .then((_) {
         positionStream().listen((streamPosition) {
           _currentPosition = streamPosition;
+          sendStompLocation(actualSharedRideId!.hexString,
+              Location(streamPosition.latitude, streamPosition.longitude));
         });
         _updateMarker(
             _currentLocationMarkerId, positionToLatLng(_currentPosition));
         startReceiveClient((userLocation) => _updateMarker(
-            MarkerId(userLocation.key), locationToLatLng(userLocation.value)));
+            MarkerId(userLocation.key),
+            locationToLatLng(userLocation.value))); //TODO update shared ride
       });
     });
   }
@@ -52,6 +57,7 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void dispose() {
     stopReceiveClient();
+    stopEmitClient();
     super.dispose();
   }
 
@@ -96,11 +102,15 @@ class _MapScreenState extends State<MapScreen> {
             }, onSelected: (value) {
               switch (value) {
                 case 0:
+                  stopReceiveClient();
+                  stopEmitClient();
                   exitSharedRide().then((value) => Navigator.of(context)
                       .pushReplacement(MaterialPageRoute(
                           builder: (context) => const SharedRideScreen())));
                   break;
                 case 1:
+                  stopReceiveClient();
+                  stopEmitClient();
                   logout().then((value) => Navigator.of(context)
                       .pushReplacement(MaterialPageRoute(
                           builder: (context) => const LoginFormScreen())));
@@ -166,6 +176,7 @@ class _MapScreenState extends State<MapScreen> {
         markers: _markers,
         onMapCreated: (GoogleMapController controller) {
           _mapService = MapService(controller, sharedRide);
+          //TODO si des positions existent déjà dans le shared ride il faut les afficher
         },
       ),
       Align(alignment: Alignment.topCenter, child: _buildSteps(sharedRide))

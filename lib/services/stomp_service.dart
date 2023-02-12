@@ -7,15 +7,20 @@ import 'package:stomp_dart_client/stomp_config.dart';
 
 import 'auth_service.dart';
 
+final String _websocketEndpoint =
+    '${hostUrl.replaceFirst("http", "ws")}/sharedride-ws-endpoint';
+final Map<String, String> _websocketConnectHeaders = {
+  'Cookie': sessionId!,
+};
+
 late StompClient _receiveClient;
+late StompClient _emitClient;
 
 void startReceiveClient(Function(MapEntry<String, Location>) subscriber) {
   _receiveClient = StompClient(
       config: StompConfig(
-    url: '${hostUrl.replaceFirst("http", "ws")}/sharedride-ws-endpoint',
-    webSocketConnectHeaders: {
-      'Cookie': sessionId!,
-    },
+    url: _websocketEndpoint,
+    webSocketConnectHeaders: _websocketConnectHeaders,
     onConnect: (frame) {
       _receiveClient.subscribe(
         destination: '/user/sharedride-ws/locations',
@@ -31,6 +36,29 @@ void startReceiveClient(Function(MapEntry<String, Location>) subscriber) {
   _receiveClient.activate();
 }
 
+void startEmitClient() {
+  _emitClient = StompClient(
+      config: StompConfig(
+    url: _websocketEndpoint,
+    webSocketConnectHeaders: _websocketConnectHeaders,
+  ));
+  _emitClient.activate();
+}
+
+void sendStompLocation(String sharedRideId, Location location) {
+  _emitClient.send(
+      destination: '/app/location',
+      body: jsonEncode(<String, dynamic>{
+        'sharedRideId': sharedRideId,
+        'username': authenticatedUser!.name,
+        'location': location
+      }));
+}
+
 void stopReceiveClient() {
   _receiveClient.deactivate();
+}
+
+void stopEmitClient() {
+  _emitClient.deactivate();
 }

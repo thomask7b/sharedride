@@ -10,4 +10,11 @@ class Location {
   Location.fromMap(Map<String, dynamic> map)
       : latitude = map['latitude'],
         longitude = map['longitude'];
+
+  Map<String, dynamic> toJson() {
+    return {
+      'latitude': latitude,
+      'longitude': longitude,
+    };
+  }
 }

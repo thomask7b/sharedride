@@ -11,7 +11,8 @@ class SharedRide {
   const SharedRide(this.id, this.usersAndLocations, this.direction);
 
   SharedRide.fromJson(this.id, Map<String, dynamic> json)
-      : usersAndLocations =
-            Map<String, Location?>.from(json['usersAndLocations']),
+      : usersAndLocations = (json['usersAndLocations'] as Map<String, dynamic>)
+            .map((key, value) =>
+                MapEntry(key, value == null ? null : Location.fromMap(value))),
         direction = DirectionsResult.fromMap(json['direction']);
 }

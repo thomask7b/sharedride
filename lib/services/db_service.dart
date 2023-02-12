@@ -39,6 +39,7 @@ Future deleteUser() {
 //Shared ride ID
 
 Future saveSharedRideId(ObjectId sharedRideId) {
+  //TODO sauver le shared ride pour un user (inutile si on save directement le shared ride)
   return _store.record(_sharedRideIdRecordKey).put(_db, sharedRideId.hexString);
 }
 
