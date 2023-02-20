@@ -16,15 +16,16 @@ User? get authenticatedUser => _authenticatedUser;
 
 Future<bool> authenticateSavedUser() async {
   _authenticatedUser ??= await fetchUser();
-  return await authenticate(authenticatedUser!);
+  if (authenticatedUser != null) {
+    return await authenticate(authenticatedUser!);
+  }
+  return false;
 }
 
 Future<bool> authenticate(User user) async {
   final response = await http.post(
     Uri.parse('$hostUrl/auth'),
-    headers: <String, String>{
-      'Content-Type': 'application/json; charset=UTF-8',
-    },
+    headers: defaultHeaders,
     body: jsonEncode(
         <String, String>{'name': user.name, 'password': user.password}),
   );
@@ -49,6 +50,5 @@ Future<bool> authenticate(User user) async {
 Future<void> logout() async {
   _sessionId = null;
   _authenticatedUser = null;
-  await deleteSharedRideId();
   await deleteUser();
 }

@@ -1,13 +1,19 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:sharedride/models/sharedride.dart';
 import 'package:sharedride/screens/login.dart';
 import 'package:sharedride/screens/sharedride.dart';
 import 'package:sharedride/services/auth_service.dart';
+import 'package:sharedride/services/geo_service.dart';
+import 'package:sharedride/services/location_service.dart';
 import 'package:sharedride/services/sharedride_service.dart';
+import 'package:sharedride/services/stomp_service.dart';
 
 import '../config.dart';
+import '../models/location.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({Key? key}) : super(key: key);
@@ -19,9 +25,61 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   final Future<SharedRide?> _sharedRide = getSharedRide(actualSharedRideId!);
 
+  late final MapService _mapService;
+  late Position _currentPosition;
+
+  static const MarkerId _currentLocationMarkerId = MarkerId("currentLocation");
+  final Set<Marker> _markers = {};
+
   @override
   void initState() {
     super.initState();
+    startEmitClient();
+    initLocationService().then((initPosition) {
+      _currentPosition = initPosition;
+      _initMarker(_currentLocationMarkerId, positionToLatLng(initPosition),
+              Icons.my_location)
+          .then((_) {
+        positionStream().listen((streamPosition) {
+          _currentPosition = streamPosition;
+          sendStompLocation(actualSharedRideId!.hexString,
+              Location(streamPosition.latitude, streamPosition.longitude));
+        });
+        _updateMarker(
+            _currentLocationMarkerId, positionToLatLng(_currentPosition));
+        startReceiveClient((userLocation) => _updateMarker(
+            MarkerId(userLocation.key),
+            locationToLatLng(userLocation.value))); //TODO update shared ride
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    stopReceiveClient();
+    stopEmitClient();
+    super.dispose();
+  }
+
+  Future<void> _initMarker(
+      MarkerId id, LatLng latLng, IconData iconData) async {
+    await iconToBitmapDescriptor(iconData).then((icon) {
+      setState(() {
+        _markers.add(Marker(markerId: id, position: latLng, icon: icon));
+      });
+    });
+  }
+
+  void _updateMarker(MarkerId id, LatLng latLng) {
+    if (_markers.any((m) => m.markerId == id)) {
+      final marker = _markers.firstWhere((m) => m.markerId == id);
+      setState(() {
+        _markers.remove(marker);
+        _markers.add(Marker(markerId: id, position: latLng, icon: marker.icon));
+      });
+    } else {
+      _initMarker(id, latLng, Icons.share_location);
+    }
   }
 
   @override
@@ -44,11 +102,15 @@ class _MapScreenState extends State<MapScreen> {
             }, onSelected: (value) {
               switch (value) {
                 case 0:
+                  stopReceiveClient();
+                  stopEmitClient();
                   exitSharedRide().then((value) => Navigator.of(context)
                       .pushReplacement(MaterialPageRoute(
                           builder: (context) => const SharedRideScreen())));
                   break;
                 case 1:
+                  stopReceiveClient();
+                  stopEmitClient();
                   logout().then((value) => Navigator.of(context)
                       .pushReplacement(MaterialPageRoute(
                           builder: (context) => const LoginFormScreen())));
@@ -61,11 +123,10 @@ class _MapScreenState extends State<MapScreen> {
             future: _sharedRide,
             builder:
                 (BuildContext context, AsyncSnapshot<SharedRide?> snapshot) {
-              List<Widget> children;
               if (snapshot.hasData) {
-                return const Text("Construction");
+                return _buildMap(snapshot.data!);
               } else if (snapshot.hasError) {
-                children = <Widget>[
+                return Column(children: [
                   const Icon(
                     Icons.error_outline,
                     color: Colors.red,
@@ -75,21 +136,89 @@ class _MapScreenState extends State<MapScreen> {
                     padding: const EdgeInsets.only(top: 16),
                     child: Text('Error: ${snapshot.error}'),
                   ),
-                ];
+                ]);
               } else {
-                children = const <Widget>[
-                  SizedBox(
-                    width: 60,
-                    height: 60,
-                    child: CircularProgressIndicator(), //TODO centrer
-                  ),
-                  Padding(
-                    padding: EdgeInsets.only(top: 16),
-                    child: Text('Chargement du shared ride...'),
-                  ),
-                ];
+                return Center(
+                    child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: const [
+                      CircularProgressIndicator(),
+                      Text("Chargement du shared ride...")
+                    ]));
               }
-              return Column(children: children);
             }));
+  }
+
+  Widget _buildMap(SharedRide sharedRide) {
+    final startLocation = geoCoordToLatLng(
+        sharedRide.direction.routes!.first.legs!.first.startLocation!);
+    final initialCameraPosition = CameraPosition(
+      target: startLocation,
+      zoom: 10,
+    );
+
+    return Stack(children: <Widget>[
+      GoogleMap(
+        mapType: MapType.normal,
+        initialCameraPosition: initialCameraPosition,
+        zoomControlsEnabled: false,
+        zoomGesturesEnabled: true,
+        rotateGesturesEnabled: false,
+        scrollGesturesEnabled: true,
+        polylines: {
+          Polyline(
+              polylineId: const PolylineId("ride"),
+              points: decodePolylines(sharedRide),
+              color: Colors.blue,
+              width: 6)
+        },
+        markers: _markers,
+        onMapCreated: (GoogleMapController controller) {
+          _mapService = MapService(controller, sharedRide);
+          //TODO si des positions existent déjà dans le shared ride il faut les afficher
+        },
+      ),
+      Align(alignment: Alignment.topCenter, child: _buildSteps(sharedRide))
+    ]);
+  }
+
+  Widget _buildSteps(SharedRide sharedRide) {
+    final leg = sharedRide.direction.routes?.first.legs?.first;
+    return Container(
+      height: 40,
+      margin: const EdgeInsets.all(10.0),
+      padding: const EdgeInsets.all(5.0),
+      decoration: _stepsDecoration(),
+      child: Text(
+        overflow: TextOverflow.ellipsis,
+        "${leg?.startAddress?.split(',')[0]} > ${leg?.endAddress?.split(',')[0]}",
+        style: const TextStyle(fontSize: 20.0),
+      ),
+    );
+  }
+
+  BoxDecoration _stepsDecoration() {
+    return BoxDecoration(
+      color: Colors.blue.shade100,
+      boxShadow: [
+        BoxShadow(
+            color: Colors.grey.withOpacity(0.5),
+            spreadRadius: 5,
+            blurRadius: 7,
+            offset: const Offset(0, 3)),
+      ],
+      border: Border(
+          left: BorderSide(
+            color: Colors.blue.shade100,
+            width: 5,
+          ),
+          top: BorderSide(
+            color: Colors.blue.shade300,
+            width: 3,
+          ),
+          right: BorderSide(color: Colors.blue.shade500, width: 2),
+          bottom: BorderSide(color: Colors.blue.shade800, width: 2)),
+    );
   }
 }

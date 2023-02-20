@@ -14,7 +14,6 @@ ObjectId? _actualSharedRideId;
 ObjectId? get actualSharedRideId => _actualSharedRideId;
 
 Future<bool> hasSharedRide() async {
-  //TODO spinner
   if (_actualSharedRideId != null) {
     return true;
   } else {
@@ -26,10 +25,7 @@ Future<bool> hasSharedRide() async {
 Future<bool> createSharedRide(List<String> steps) async {
   final response = await http.post(
     Uri.parse('$hostUrl/sharedride/create'),
-    headers: <String, String>{
-      'Cookie': sessionId!,
-      'Content-Type': 'application/json; charset=UTF-8',
-    },
+    headers: <String, String>{'Cookie': sessionId!}..addAll(defaultHeaders),
     body: jsonEncode(steps),
   );
   if (kDebugMode) {
@@ -62,10 +58,13 @@ Future<SharedRide?> getSharedRide(ObjectId sharedRideId) async {
   if (response.statusCode == 200) {
     _actualSharedRideId = sharedRideId;
     if (kDebugMode) {
-      print("Réception du shared ride.");
+      print("Réception du shared ride $sharedRideId.");
     }
     saveSharedRideId(_actualSharedRideId!);
-    return SharedRide.fromJson(actualSharedRideId!, jsonDecode(response.body));
+    return SharedRide.fromJson(
+        actualSharedRideId!,
+        jsonDecode(
+            response.body)); //TODO sauver en BDD pour éviter multiples appels
   }
   deleteSharedRideId();
   _actualSharedRideId = null;

@@ -8,9 +8,7 @@ import 'package:sharedride/models/user.dart';
 Future<bool> createAccount(User user) async {
   final response = await http.post(
     Uri.parse('$hostUrl/users/create'),
-    headers: <String, String>{
-      'Content-Type': 'application/json; charset=UTF-8',
-    },
+    headers: defaultHeaders,
     body: jsonEncode(
         <String, String>{'name': user.name, 'password': user.password}),
   );

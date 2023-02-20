@@ -2,12 +2,14 @@
     package="org.flotho.sharedride.sharedride">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <meta-data
-        android:name="com.google.android.geo.API_KEY"
-        android:value="AIzaSyD94HcrHVpJRDh9DKxOTw6qtwnzFdv-obo" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
     <application
         android:icon="@mipmap/ic_launcher"
         android:label="sharedride">
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyD94HcrHVpJRDh9DKxOTw6qtwnzFdv-obo" />
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
