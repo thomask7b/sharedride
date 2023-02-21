@@ -44,12 +44,15 @@ class _MapScreenState extends State<MapScreen> {
           _currentPosition = streamPosition;
           sendStompLocation(actualSharedRideId!.hexString,
               Location(streamPosition.latitude, streamPosition.longitude));
+          _updateMarker(
+              _currentLocationMarkerId, positionToLatLng(_currentPosition));
         });
-        _updateMarker(
-            _currentLocationMarkerId, positionToLatLng(_currentPosition));
-        startReceiveClient((userLocation) => _updateMarker(
-            MarkerId(userLocation.key),
-            locationToLatLng(userLocation.value))); //TODO update shared ride
+        startReceiveClient((userLocation) {
+          if (userLocation.key != authenticatedUser!.name) {
+            _updateMarker(MarkerId(userLocation.key),
+                locationToLatLng(userLocation.value));
+          }
+        }); //TODO update shared ride
       });
     });
   }
