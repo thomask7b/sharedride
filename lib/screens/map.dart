@@ -24,9 +24,12 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   final Future<SharedRide?> _sharedRide = getSharedRide(actualSharedRideId!);
+  bool _isTracking = false;
+  int _displayedSpeed = 0;
 
   late final MapService _mapService;
   late Position _currentPosition;
+  late Timer trackingModeTimer;
 
   static const MarkerId _currentLocationMarkerId = MarkerId("currentLocation");
   final Set<Marker> _markers = {};
@@ -46,6 +49,10 @@ class _MapScreenState extends State<MapScreen> {
               Location(streamPosition.latitude, streamPosition.longitude));
           _updateMarker(
               _currentLocationMarkerId, positionToLatLng(_currentPosition));
+          _fitMap();
+          setState(() {
+            _displayedSpeed = _currentPosition.speed.round();
+          });
         });
         startReceiveClient((userLocation) {
           if (userLocation.key != authenticatedUser!.name) {
@@ -85,72 +92,96 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  void _fitMap() {
+    if (_isTracking) {
+      _mapService.updateCamera(
+          LatLng(_currentPosition.latitude, _currentPosition.longitude),
+          bearing: _currentPosition.heading,
+          highSpeed: _currentPosition.speed > 100);
+    } else {
+      _mapService.fitOnSharedRide();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: const Text(appName),
-          actions: [
-            PopupMenuButton(itemBuilder: (context) {
-              return [
-                const PopupMenuItem<int>(
-                  value: 0,
-                  child: Text("Quitter le shared ride"),
+      appBar: AppBar(
+        title: const Text(appName),
+        actions: [
+          PopupMenuButton(itemBuilder: (context) {
+            return [
+              const PopupMenuItem<int>(
+                value: 0,
+                child: Text("Quitter le shared ride"),
+              ),
+              const PopupMenuItem<int>(
+                value: 1,
+                child: Text("Déconnexion"),
+              ),
+            ];
+          }, onSelected: (value) {
+            switch (value) {
+              case 0:
+                stopReceiveClient();
+                stopEmitClient();
+                exitSharedRide().then((value) => Navigator.of(context)
+                    .pushReplacement(MaterialPageRoute(
+                        builder: (context) => const SharedRideScreen())));
+                break;
+              case 1:
+                stopReceiveClient();
+                stopEmitClient();
+                logout().then((value) => Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                        builder: (context) => const LoginFormScreen())));
+                break;
+            }
+          }),
+        ],
+      ),
+      body: FutureBuilder<SharedRide?>(
+          future: _sharedRide,
+          builder: (BuildContext context, AsyncSnapshot<SharedRide?> snapshot) {
+            if (snapshot.hasData) {
+              return _buildMap(snapshot.data!);
+            } else if (snapshot.hasError) {
+              return Column(children: [
+                const Icon(
+                  Icons.error_outline,
+                  color: Colors.red,
+                  size: 60,
                 ),
-                const PopupMenuItem<int>(
-                  value: 1,
-                  child: Text("Déconnexion"),
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Text('Error: ${snapshot.error}'),
                 ),
-              ];
-            }, onSelected: (value) {
-              switch (value) {
-                case 0:
-                  stopReceiveClient();
-                  stopEmitClient();
-                  exitSharedRide().then((value) => Navigator.of(context)
-                      .pushReplacement(MaterialPageRoute(
-                          builder: (context) => const SharedRideScreen())));
-                  break;
-                case 1:
-                  stopReceiveClient();
-                  stopEmitClient();
-                  logout().then((value) => Navigator.of(context)
-                      .pushReplacement(MaterialPageRoute(
-                          builder: (context) => const LoginFormScreen())));
-                  break;
-              }
-            }),
-          ],
-        ),
-        body: FutureBuilder<SharedRide?>(
-            future: _sharedRide,
-            builder:
-                (BuildContext context, AsyncSnapshot<SharedRide?> snapshot) {
-              if (snapshot.hasData) {
-                return _buildMap(snapshot.data!);
-              } else if (snapshot.hasError) {
-                return Column(children: [
-                  const Icon(
-                    Icons.error_outline,
-                    color: Colors.red,
-                    size: 60,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: Text('Error: ${snapshot.error}'),
-                  ),
-                ]);
-              } else {
-                return Center(
-                    child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: const [
-                      CircularProgressIndicator(),
-                      Text("Chargement du shared ride...")
-                    ]));
-              }
-            }));
+              ]);
+            } else {
+              return Center(
+                  child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: const [
+                    CircularProgressIndicator(),
+                    Text("Chargement du shared ride...")
+                  ]));
+            }
+          }),
+      floatingActionButton: FloatingActionButton(
+          backgroundColor: Colors.blue,
+          onPressed: () => _displayMode(),
+          child: _isTracking
+              ? const Icon(Icons.gps_not_fixed)
+              : const Icon(Icons.gps_fixed)),
+    );
+  }
+
+  void _displayMode() {
+    setState(() {
+      _isTracking = !_isTracking;
+    });
+    _fitMap();
   }
 
   Widget _buildMap(SharedRide sharedRide) {
@@ -158,7 +189,7 @@ class _MapScreenState extends State<MapScreen> {
         sharedRide.direction.routes!.first.legs!.first.startLocation!);
     final initialCameraPosition = CameraPosition(
       target: startLocation,
-      zoom: 10,
+      zoom: zoomLevel,
     );
 
     return Stack(children: <Widget>[
@@ -182,7 +213,8 @@ class _MapScreenState extends State<MapScreen> {
           //TODO si des positions existent déjà dans le shared ride il faut les afficher
         },
       ),
-      Align(alignment: Alignment.topCenter, child: _buildSteps(sharedRide))
+      Align(alignment: Alignment.topCenter, child: _buildSteps(sharedRide)),
+      Align(alignment: Alignment.bottomLeft, child: _buildSpeed()),
     ]);
   }
 
@@ -198,6 +230,19 @@ class _MapScreenState extends State<MapScreen> {
       child: Text(
         overflow: TextOverflow.ellipsis,
         "$startAddress > $endAddress",
+        style: const TextStyle(fontSize: 20.0),
+      ),
+    );
+  }
+
+  Widget _buildSpeed() {
+    return Container(
+      height: 40,
+      margin: const EdgeInsets.all(10.0),
+      padding: const EdgeInsets.all(5.0),
+      decoration: _stepsDecoration(),
+      child: Text(
+        "$_displayedSpeed km/h",
         style: const TextStyle(fontSize: 20.0),
       ),
     );

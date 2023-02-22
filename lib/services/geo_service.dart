@@ -9,13 +9,18 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../models/location.dart';
 import '../models/sharedride.dart';
 
-enum MODE { tracking, overview }
+const zoomLevel = 15.0;
+const highSpeedZoomLevel = 14.0;
 
 class MapService {
   final GoogleMapController _controller;
   final SharedRide _sharedRide;
 
   MapService(this._controller, this._sharedRide) {
+    fitOnSharedRide();
+  }
+
+  void fitOnSharedRide() {
     fitMapOnBounds(geoCoordBoundsToLatLngBounds(
         _sharedRide.direction.routes!.first.bounds!));
   }
@@ -24,9 +29,12 @@ class MapService {
     _controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 50));
   }
 
-  void updateCamera(LatLng latLng, {double bearing = 0}) {
-    _controller.animateCamera(CameraUpdate.newCameraPosition(
-        CameraPosition(target: latLng, bearing: bearing)));
+  void updateCamera(LatLng latLng,
+      {double bearing = 0, bool highSpeed = false}) {
+    _controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
+        target: latLng,
+        bearing: bearing,
+        zoom: highSpeed ? highSpeedZoomLevel : zoomLevel)));
   }
 }
 
