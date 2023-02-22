@@ -221,7 +221,8 @@ class _SharedRideScreenState extends ProgressibleState<SharedRideScreen> {
   }
 
   void _navigateToMapScreen() {
-    Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const MapScreen()));
+    Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const MapScreen()),
+        (Route<dynamic> route) => false);
   }
 }
