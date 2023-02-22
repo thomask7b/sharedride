@@ -187,7 +187,9 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Widget _buildSteps(SharedRide sharedRide) {
-    final leg = sharedRide.direction.routes?.first.legs?.first;
+    final legs = sharedRide.direction.routes!.first.legs!;
+    final startAddress = legs.first.startAddress!;
+    final endAddress = legs.last.endAddress!;
     return Container(
       height: 40,
       margin: const EdgeInsets.all(10.0),
@@ -195,7 +197,7 @@ class _MapScreenState extends State<MapScreen> {
       decoration: _stepsDecoration(),
       child: Text(
         overflow: TextOverflow.ellipsis,
-        "${leg?.startAddress?.split(',')[0]} > ${leg?.endAddress?.split(',')[0]}",
+        "$startAddress > $endAddress",
         style: const TextStyle(fontSize: 20.0),
       ),
     );

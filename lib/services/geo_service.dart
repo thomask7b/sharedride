@@ -33,10 +33,10 @@ class MapService {
 final PolylinePoints _polylineUtils = PolylinePoints();
 
 List<LatLng> decodePolylines(SharedRide sharedRide) {
-  return sharedRide.direction.routes!.first.legs!.first.steps!
-      .expand((step) => _polylineUtils
+  return sharedRide.direction.routes!.first.legs!
+      .expand((leg) => leg.steps!.expand((step) => _polylineUtils
           .decodePolyline(step.polyline!.points!)
-          .map((ptLatLng) => LatLng(ptLatLng.latitude, ptLatLng.longitude)))
+          .map((ptLatLng) => LatLng(ptLatLng.latitude, ptLatLng.longitude))))
       .toList();
 }
 
