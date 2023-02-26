@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -23,6 +24,8 @@ class MapScreen extends StatefulWidget {
   @override
   State<MapScreen> createState() => _MapScreenState();
 }
+
+enum ActionMenu { quit, logout, copySharedRideId }
 
 class _MapScreenState extends State<MapScreen> {
   final Future<SharedRide?> _sharedRide = getSharedRide(actualSharedRideId!);
@@ -137,25 +140,37 @@ class _MapScreenState extends State<MapScreen> {
         actions: [
           PopupMenuButton(itemBuilder: (context) {
             return [
-              const PopupMenuItem<int>(
-                value: 0,
+              const PopupMenuItem<ActionMenu>(
+                value: ActionMenu.copySharedRideId,
+                child: Text("Copier l'ID du shared ride"),
+              ),
+              const PopupMenuItem<ActionMenu>(
+                value: ActionMenu.quit,
                 child: Text("Quitter le shared ride"),
               ),
-              const PopupMenuItem<int>(
-                value: 1,
+              const PopupMenuItem<ActionMenu>(
+                value: ActionMenu.logout,
                 child: Text("Déconnexion"),
               ),
             ];
           }, onSelected: (value) {
             switch (value) {
-              case 0:
+              case ActionMenu.copySharedRideId:
+                Clipboard.setData(
+                        ClipboardData(text: actualSharedRideId!.hexString))
+                    .then((_) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text("L'ID du shared ride a bien été copié.")));
+                });
+                break;
+              case ActionMenu.quit:
                 stopReceiveClient();
                 stopEmitClient();
                 exitSharedRide().then((value) => Navigator.of(context)
                     .pushReplacement(MaterialPageRoute(
                         builder: (context) => const SharedRideScreen())));
                 break;
-              case 1:
+              case ActionMenu.logout:
                 stopReceiveClient();
                 stopEmitClient();
                 logout().then((value) => Navigator.of(context).pushReplacement(
