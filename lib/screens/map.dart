@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_html/flutter_html.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:sharedride/models/sharedride.dart';
@@ -13,7 +14,7 @@ import 'package:sharedride/services/sharedride_service.dart';
 import 'package:sharedride/services/stomp_service.dart';
 
 import '../config.dart';
-import '../models/location.dart';
+import '../services/utils.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({Key? key}) : super(key: key);
@@ -24,15 +25,18 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   final Future<SharedRide?> _sharedRide = getSharedRide(actualSharedRideId!);
-  bool _isTracking = false;
-  int _displayedSpeed = 0;
 
   late final MapService _mapService;
   late Position _currentPosition;
-  late Timer trackingModeTimer;
 
+  static const String _defaultInstructions = "<b>Rejoignez l'itinéraire</b>";
   static const MarkerId _currentLocationMarkerId = MarkerId("currentLocation");
   final Set<Marker> _markers = {};
+
+  bool _isTracking = false;
+  int _displayedSpeed = 0;
+  String _instructions = _defaultInstructions;
+  String _distanceToNextStep = "0 m";
 
   @override
   void initState() {
@@ -46,12 +50,18 @@ class _MapScreenState extends State<MapScreen> {
         positionStream().listen((streamPosition) {
           _currentPosition = streamPosition;
           sendStompLocation(actualSharedRideId!.hexString,
-              Location(streamPosition.latitude, streamPosition.longitude));
+              positionToLocation(streamPosition));
           _updateMarker(
               _currentLocationMarkerId, positionToLatLng(_currentPosition));
           _fitMap();
+          _mapService.updateSituation(positionToLocation(_currentPosition));
           setState(() {
             _displayedSpeed = _currentPosition.speed.round();
+            _instructions = _mapService.isOnRide
+                ? _mapService.instructions
+                : _defaultInstructions;
+            _distanceToNextStep = _formatDitanceToNextStep(_mapService
+                .distanceToNextStep(positionToLocation(_currentPosition)));
           });
         });
         startReceiveClient((userLocation) {
@@ -97,10 +107,18 @@ class _MapScreenState extends State<MapScreen> {
       _mapService.updateCamera(
           LatLng(_currentPosition.latitude, _currentPosition.longitude),
           bearing: _currentPosition.heading,
-          highSpeed: _currentPosition.speed > 100);
+          zoomLevel: zoomLevelFromSpeed(_currentPosition.speed));
     } else {
       _mapService.fitOnSharedRide();
     }
+  }
+
+  String _formatDitanceToNextStep(int distanceInMeters) {
+    if (distanceInMeters > 1000) {
+      final distanceInKiloMeters = (distanceInMeters / 1000).toStringAsFixed(1);
+      return "$distanceInKiloMeters km";
+    }
+    return "${(distanceInMeters / 10).round() * 10} m";
   }
 
   @override
@@ -189,7 +207,7 @@ class _MapScreenState extends State<MapScreen> {
         sharedRide.direction.routes!.first.legs!.first.startLocation!);
     final initialCameraPosition = CameraPosition(
       target: startLocation,
-      zoom: zoomLevel,
+      zoom: ZoomLevel.normal.value,
     );
 
     return Stack(children: <Widget>[
@@ -200,6 +218,9 @@ class _MapScreenState extends State<MapScreen> {
         zoomGesturesEnabled: true,
         rotateGesturesEnabled: false,
         scrollGesturesEnabled: true,
+        buildingsEnabled: false,
+        mapToolbarEnabled: false,
+        compassEnabled: false,
         polylines: {
           Polyline(
               polylineId: const PolylineId("ride"),
@@ -214,7 +235,10 @@ class _MapScreenState extends State<MapScreen> {
         },
       ),
       Align(alignment: Alignment.topCenter, child: _buildSteps(sharedRide)),
+      Align(alignment: Alignment.topCenter, child: _buildInstructions()),
       Align(alignment: Alignment.bottomLeft, child: _buildSpeed()),
+      Align(
+          alignment: Alignment.bottomCenter, child: _buildDistanceToNextStep()),
     ]);
   }
 
@@ -222,53 +246,81 @@ class _MapScreenState extends State<MapScreen> {
     final legs = sharedRide.direction.routes!.first.legs!;
     final startAddress = legs.first.startAddress!;
     final endAddress = legs.last.endAddress!;
-    return Container(
-      height: 40,
-      margin: const EdgeInsets.all(10.0),
-      padding: const EdgeInsets.all(5.0),
-      decoration: _stepsDecoration(),
-      child: Text(
+    return _container(
+      Text(
         overflow: TextOverflow.ellipsis,
         "$startAddress > $endAddress",
-        style: const TextStyle(fontSize: 20.0),
+        style: const TextStyle(fontSize: 18.0),
+      ),
+    );
+  }
+
+  Widget _buildInstructions() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(10.0, 50, 10.0, 10.0),
+      padding: const EdgeInsets.all(5.0),
+      decoration: BoxDecoration(
+          boxShadow: _boxShadow(),
+          gradient: LinearGradient(
+              stops: const [0.02, 0.02],
+              colors: _instructions == _defaultInstructions
+                  ? [Colors.red.shade800, Colors.red.shade200.withOpacity(0.6)]
+                  : [
+                      Colors.blue.withOpacity(0.6),
+                      Colors.white.withOpacity(0.6)
+                    ]),
+          borderRadius: const BorderRadius.all(Radius.circular(6.0))),
+      child: Html(
+        style: {
+          'html': Style(textAlign: TextAlign.center),
+        },
+        data: _instructions,
       ),
     );
   }
 
   Widget _buildSpeed() {
-    return Container(
-      height: 40,
-      margin: const EdgeInsets.all(10.0),
-      padding: const EdgeInsets.all(5.0),
-      decoration: _stepsDecoration(),
-      child: Text(
+    return _container(
+      Text(
         "$_displayedSpeed km/h",
         style: const TextStyle(fontSize: 20.0),
       ),
     );
   }
 
-  BoxDecoration _stepsDecoration() {
-    return BoxDecoration(
-      color: Colors.blue.shade100,
-      boxShadow: [
-        BoxShadow(
-            color: Colors.grey.withOpacity(0.5),
-            spreadRadius: 5,
-            blurRadius: 7,
-            offset: const Offset(0, 3)),
-      ],
-      border: Border(
-          left: BorderSide(
-            color: Colors.blue.shade100,
-            width: 5,
-          ),
-          top: BorderSide(
-            color: Colors.blue.shade300,
-            width: 3,
-          ),
-          right: BorderSide(color: Colors.blue.shade500, width: 2),
-          bottom: BorderSide(color: Colors.blue.shade800, width: 2)),
+  Widget _buildDistanceToNextStep() {
+    return _container(
+      Text(
+        _distanceToNextStep,
+        style: const TextStyle(fontSize: 20.0),
+      ),
     );
+  }
+
+  Container _container(Widget widget) {
+    return Container(
+      margin: const EdgeInsets.all(10.0),
+      padding: const EdgeInsets.all(5.0),
+      decoration: _boxDecoration(),
+      child: widget,
+    );
+  }
+
+  BoxDecoration _boxDecoration() {
+    return BoxDecoration(
+      color: Colors.blue.shade100.withOpacity(0.8),
+      boxShadow: _boxShadow(),
+      borderRadius: const BorderRadius.all(Radius.circular(6.0)),
+    );
+  }
+
+  List<BoxShadow> _boxShadow() {
+    return [
+      BoxShadow(
+          color: Colors.grey.withOpacity(0.5),
+          spreadRadius: 5,
+          blurRadius: 7,
+          offset: const Offset(0, 3))
+    ];
   }
 }
