@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:geolocator/geolocator.dart';
+import 'package:sharedride/models/location.dart';
 
 const LocationSettings _locationSettings = LocationSettings(
   accuracy: LocationAccuracy.high,
@@ -24,4 +25,12 @@ Future<Position> initLocationService() async {
   }
 
   return await Geolocator.getCurrentPosition();
+}
+
+double distanceBetween(Location firstLocation, Location secondLocation) {
+  return Geolocator.distanceBetween(
+      firstLocation.latitude,
+      firstLocation.longitude,
+      secondLocation.latitude,
+      secondLocation.longitude);
 }
