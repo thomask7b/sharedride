@@ -12,7 +12,18 @@ dependencies:
   flutter:
     sdk: flutter
   http: ^0.13.5
-  cupertino_icons: ^1.0.5
+  google_directions_api: ^0.9.1
+  flutter_google_places: ^0.3.0
+  google_maps_webservice: ^0.0.20-nullsafety.5
+  objectid: ^2.1.0
+  google_maps_flutter: ^2.2.1
+  flutter_polyline_points: ^1.0.0
+  sembast: ^3.3.1
+  path: ^1.8.2
+  path_provider: ^2.0.11
+  geolocator: ^8.2.1
+  stomp_dart_client: ^0.4.4
+  flutter_html: ^2.2.1
 
 dev_dependencies:
   flutter_test:

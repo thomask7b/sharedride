@@ -43,10 +43,11 @@ android {
 
     defaultConfig {
         applicationId "org.flotho.sharedride.sharedride"
-        minSdkVersion 16
+        minSdkVersion 20
         targetSdkVersion 32
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
+        multiDexEnabled true
     }
 
     buildTypes {
@@ -64,4 +65,5 @@ flutter {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    implementation 'com.android.support:multidex:1.0.3'
 }

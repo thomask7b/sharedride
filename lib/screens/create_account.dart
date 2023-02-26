@@ -49,8 +49,10 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                         labelText: "Entrez votre nom d'utilisateur",
                       ),
                       validator: (value) {
-                        if (!isValidUsername(value)) {
-                          return "Ce nom d'utilsiateur est invalide";
+                        final trimmedValue = value!.trim();
+                        _usernameController.text = trimmedValue;
+                        if (!isValidUsername(trimmedValue)) {
+                          return "Ce nom d'utilisateur est invalide";
                         }
                         return null;
                       },
