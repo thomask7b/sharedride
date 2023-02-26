@@ -24,6 +24,7 @@ dependencies:
   geolocator: ^8.2.1
   stomp_dart_client: ^0.4.4
   flutter_html: ^2.2.1
+  wakelock: ^0.6.2
 
 dev_dependencies:
   flutter_test:

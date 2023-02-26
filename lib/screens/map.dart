@@ -12,6 +12,7 @@ import 'package:sharedride/services/geo_service.dart';
 import 'package:sharedride/services/location_service.dart';
 import 'package:sharedride/services/sharedride_service.dart';
 import 'package:sharedride/services/stomp_service.dart';
+import 'package:wakelock/wakelock.dart';
 
 import '../config.dart';
 import '../services/utils.dart';
@@ -41,6 +42,9 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
+    setState(() {
+      Wakelock.enable();
+    });
     startEmitClient();
     initLocationService().then((initPosition) {
       _currentPosition = initPosition;
@@ -78,6 +82,9 @@ class _MapScreenState extends State<MapScreen> {
   void dispose() {
     stopReceiveClient();
     stopEmitClient();
+    setState(() {
+      Wakelock.disable();
+    });
     super.dispose();
   }
 
@@ -125,6 +132,7 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 40,
         title: const Text(appName),
         actions: [
           PopupMenuButton(itemBuilder: (context) {
