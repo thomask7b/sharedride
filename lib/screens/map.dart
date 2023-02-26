@@ -132,6 +132,7 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 40,
         title: const Text(appName),
         actions: [
           PopupMenuButton(itemBuilder: (context) {
