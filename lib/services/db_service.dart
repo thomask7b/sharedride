@@ -46,7 +46,7 @@ Future saveSharedRideId(ObjectId sharedRideId) {
 Future<ObjectId?> fetchSharedRideId() async {
   final result = await _store.record(_sharedRideIdRecordKey).get(_db);
   if (result != null) {
-    return ObjectId.fromHexString(result);
+    return ObjectId.fromHexString(result as String);
   }
   return null;
 }
