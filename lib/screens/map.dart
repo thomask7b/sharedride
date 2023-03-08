@@ -29,13 +29,14 @@ enum ActionMenu { quit, logout, copySharedRideId }
 
 class _MapScreenState extends State<MapScreen> {
   final Future<SharedRide?> _sharedRide = getSharedRide(actualSharedRideId!);
+  StreamSubscription<Position>? _positionListener;
 
   late final MapService _mapService;
   late Position _currentPosition;
 
   static const String _defaultInstructions = "<b>Rejoignez l'itinéraire</b>";
   static const MarkerId _currentLocationMarkerId = MarkerId("currentLocation");
-  final Set<Marker> _markers = {};
+  Set<Marker>? _markers = {};
 
   bool _isTracking = false;
   int _displayedSpeed = 0;
@@ -45,16 +46,16 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
-    setState(() {
-      Wakelock.enable();
-    });
+    Wakelock.enable();
     startEmitClient();
+    print("bbbb");
     initLocationService().then((initPosition) {
       _currentPosition = initPosition;
       _initMarker(_currentLocationMarkerId, positionToLatLng(initPosition),
               Icons.my_location)
           .then((_) {
-        positionStream().listen((streamPosition) {
+        print("aaaaaaaa");
+        _positionListener = positionStream().listen((streamPosition) {
           _currentPosition = streamPosition;
           sendStompLocation(actualSharedRideId!.hexString,
               positionToLocation(streamPosition));
@@ -71,6 +72,10 @@ class _MapScreenState extends State<MapScreen> {
                 .distanceToNextStep(positionToLocation(_currentPosition)));
           });
         });
+        //si on a déjà quitté on annule la souscription
+        if (actualSharedRideId == null || authenticatedUser == null) {
+          _positionListener?.cancel();
+        }
         startReceiveClient((userLocation) {
           if (userLocation.key != authenticatedUser!.name) {
             _updateMarker(MarkerId(userLocation.key),
@@ -83,29 +88,32 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   void dispose() {
+    _positionListener?.cancel();
+    _markers = null;
     stopReceiveClient();
     stopEmitClient();
-    setState(() {
-      Wakelock.disable();
-    });
+    Wakelock.disable();
     super.dispose();
   }
 
   Future<void> _initMarker(
       MarkerId id, LatLng latLng, IconData iconData) async {
     await iconToBitmapDescriptor(iconData).then((icon) {
-      setState(() {
-        _markers.add(Marker(markerId: id, position: latLng, icon: icon));
-      });
+      if (_markers != null) {
+        setState(() {
+          _markers?.add(Marker(markerId: id, position: latLng, icon: icon));
+        });
+      }
     });
   }
 
   void _updateMarker(MarkerId id, LatLng latLng) {
-    if (_markers.any((m) => m.markerId == id)) {
-      final marker = _markers.firstWhere((m) => m.markerId == id);
+    if (_markers!.any((m) => m.markerId == id)) {
+      final marker = _markers!.firstWhere((m) => m.markerId == id);
       setState(() {
-        _markers.remove(marker);
-        _markers.add(Marker(markerId: id, position: latLng, icon: marker.icon));
+        _markers!.remove(marker);
+        _markers!
+            .add(Marker(markerId: id, position: latLng, icon: marker.icon));
       });
     } else {
       _initMarker(id, latLng, Icons.share_location);
@@ -164,15 +172,11 @@ class _MapScreenState extends State<MapScreen> {
                 });
                 break;
               case ActionMenu.quit:
-                stopReceiveClient();
-                stopEmitClient();
                 exitSharedRide().then((value) => Navigator.of(context)
                     .pushReplacement(MaterialPageRoute(
                         builder: (context) => const SharedRideScreen())));
                 break;
               case ActionMenu.logout:
-                stopReceiveClient();
-                stopEmitClient();
                 logout().then((value) => Navigator.of(context).pushReplacement(
                     MaterialPageRoute(
                         builder: (context) => const LoginFormScreen())));
@@ -251,7 +255,7 @@ class _MapScreenState extends State<MapScreen> {
               color: Colors.blue,
               width: 6)
         },
-        markers: _markers,
+        markers: _markers!,
         onMapCreated: (GoogleMapController controller) {
           _mapService = MapService(controller, sharedRide);
           //TODO si des positions existent déjà dans le shared ride il faut les afficher

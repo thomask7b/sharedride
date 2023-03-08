@@ -13,8 +13,8 @@ final Map<String, String> _websocketConnectHeaders = {
   'Cookie': sessionId!,
 };
 
-late StompClient _receiveClient;
-late StompClient _emitClient;
+StompClient? _receiveClient;
+StompClient? _emitClient;
 
 void startReceiveClient(Function(MapEntry<String, Location>) subscriber) {
   _receiveClient = StompClient(
@@ -22,7 +22,7 @@ void startReceiveClient(Function(MapEntry<String, Location>) subscriber) {
     url: _websocketEndpoint,
     webSocketConnectHeaders: _websocketConnectHeaders,
     onConnect: (frame) {
-      _receiveClient.subscribe(
+      _receiveClient?.subscribe(
         destination: '/user/sharedride-ws/locations',
         callback: (frame) {
           final message = jsonDecode(frame.body!);
@@ -33,7 +33,7 @@ void startReceiveClient(Function(MapEntry<String, Location>) subscriber) {
       );
     },
   ));
-  _receiveClient.activate();
+  _receiveClient?.activate();
 }
 
 void startEmitClient() {
@@ -42,11 +42,11 @@ void startEmitClient() {
     url: _websocketEndpoint,
     webSocketConnectHeaders: _websocketConnectHeaders,
   ));
-  _emitClient.activate();
+  _emitClient?.activate();
 }
 
 void sendStompLocation(String sharedRideId, Location location) {
-  _emitClient.send(
+  _emitClient?.send(
       destination: '/app/location',
       body: jsonEncode(<String, dynamic>{
         'sharedRideId': sharedRideId,
@@ -56,9 +56,9 @@ void sendStompLocation(String sharedRideId, Location location) {
 }
 
 void stopReceiveClient() {
-  _receiveClient.deactivate();
+  _receiveClient?.deactivate();
 }
 
 void stopEmitClient() {
-  _emitClient.deactivate();
+  _emitClient?.deactivate();
 }
