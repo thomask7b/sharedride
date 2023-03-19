@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sharedride/config.dart';
 import 'package:sharedride/services/db_service.dart';
 
@@ -7,7 +8,10 @@ import 'screens/login.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initDb();
-  runApp(const SharedRideApp());
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
+      .then((_) {
+    runApp(const SharedRideApp());
+  });
 }
 
 class SharedRideApp extends StatelessWidget {

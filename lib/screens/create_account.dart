@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:sharedride/config.dart';
 import 'package:sharedride/models/user.dart';
+import 'package:sharedride/screens/components/button.dart';
 import 'package:sharedride/services/users_service.dart';
 
 import '../utils.dart';
@@ -29,14 +29,18 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
         resizeToAvoidBottomInset: false,
+        backgroundColor: Colors.grey[300],
         appBar: AppBar(
-          title: const Text(appName),
+          title: const Text("Créer un compte"),
+          backgroundColor: Colors.grey[900],
         ),
         body: Container(
-          margin: const EdgeInsets.all(20.0),
+          margin: const EdgeInsets.all(25),
           child: Column(
             children: [
-              const Text("Créez un compte :"),
+              const SizedBox(height: 20),
+              const Icon(Icons.account_circle, size: 100),
+              const SizedBox(height: 40),
               Form(
                 key: _formKey,
                 child: Column(
@@ -44,9 +48,11 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                   children: [
                     TextFormField(
                       controller: _usernameController,
-                      decoration: const InputDecoration(
-                        border: UnderlineInputBorder(),
+                      decoration: InputDecoration(
+                        border: const UnderlineInputBorder(),
                         labelText: "Entrez votre nom d'utilisateur",
+                        fillColor: Colors.grey.shade200,
+                        filled: true,
                       ),
                       validator: (value) {
                         final trimmedValue = value!.trim();
@@ -57,12 +63,15 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                         return null;
                       },
                     ),
+                    const SizedBox(height: 20),
                     TextFormField(
                       controller: _passwordController,
                       obscureText: true,
-                      decoration: const InputDecoration(
-                        border: UnderlineInputBorder(),
+                      decoration: InputDecoration(
+                        border: const UnderlineInputBorder(),
                         labelText: "Entrez votre mot de passe",
+                        fillColor: Colors.grey.shade200,
+                        filled: true,
                       ),
                       validator: (value) {
                         if (value!.isEmpty) {
@@ -71,11 +80,14 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                         return null;
                       },
                     ),
+                    const SizedBox(height: 10),
                     TextFormField(
                       obscureText: true,
-                      decoration: const InputDecoration(
-                        border: UnderlineInputBorder(),
+                      decoration: InputDecoration(
+                        border: const UnderlineInputBorder(),
                         labelText: "Confirmez votre mot de passe",
+                        fillColor: Colors.grey.shade200,
+                        filled: true,
                       ),
                       validator: (value) {
                         if (value != _passwordController.text) {
@@ -85,23 +97,12 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                       },
                     ),
                     Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        padding: const EdgeInsets.symmetric(vertical: 50),
                         child: Align(
                           alignment: Alignment.centerRight,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (_formKey.currentState!.validate()) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text(
-                                          'Création du compte en cours...')),
-                                );
-                                createAccount(User(_usernameController.text,
-                                        _passwordController.text))
-                                    .then(_manageCreateAccountResponse);
-                              }
-                            },
-                            child: const Text('Créer un compte'),
+                          child: Button(
+                            onTap: _createAccount,
+                            text: 'Créer un compte',
                           ),
                         )),
                   ],
@@ -110,6 +111,17 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
             ],
           ),
         ));
+  }
+
+  _createAccount() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    if (_formKey.currentState!.validate()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Création du compte en cours...')),
+      );
+      createAccount(User(_usernameController.text, _passwordController.text))
+          .then(_manageCreateAccountResponse);
+    }
   }
 
   _manageCreateAccountResponse(bool isCreated) {

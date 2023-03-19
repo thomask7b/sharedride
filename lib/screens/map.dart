@@ -6,6 +6,7 @@ import 'package:flutter_html/flutter_html.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:sharedride/models/sharedride.dart';
+import 'package:sharedride/screens/components/menu_item.dart';
 import 'package:sharedride/screens/login.dart';
 import 'package:sharedride/screens/sharedride.dart';
 import 'package:sharedride/services/auth_service.dart';
@@ -48,13 +49,11 @@ class _MapScreenState extends State<MapScreen> {
     super.initState();
     Wakelock.enable();
     startEmitClient();
-    print("bbbb");
     initLocationService().then((initPosition) {
       _currentPosition = initPosition;
       _initMarker(_currentLocationMarkerId, positionToLatLng(initPosition),
               Icons.my_location)
           .then((_) {
-        print("aaaaaaaa");
         _positionListener = positionStream().listen((streamPosition) {
           _currentPosition = streamPosition;
           sendStompLocation(actualSharedRideId!.hexString,
@@ -64,7 +63,7 @@ class _MapScreenState extends State<MapScreen> {
           _fitMap();
           _mapService.updateSituation(positionToLocation(_currentPosition));
           setState(() {
-            _displayedSpeed = _currentPosition.speed.round();
+            _displayedSpeed = (_currentPosition.speed * 3.6).round();
             _instructions = _mapService.isOnRide
                 ? _mapService.instructions
                 : _defaultInstructions;
@@ -144,22 +143,24 @@ class _MapScreenState extends State<MapScreen> {
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 40,
+        backgroundColor: Colors.grey[900],
         title: const Text(appName),
         actions: [
           PopupMenuButton(itemBuilder: (context) {
             return [
               const PopupMenuItem<ActionMenu>(
                 value: ActionMenu.copySharedRideId,
-                child: Text("Copier l'ID du shared ride"),
+                child: MenuItem(
+                    icon: Icons.copy, text: "Copier l'ID du shared ride"),
               ),
               const PopupMenuItem<ActionMenu>(
-                value: ActionMenu.quit,
-                child: Text("Quitter le shared ride"),
-              ),
+                  value: ActionMenu.quit,
+                  child: MenuItem(
+                      icon: Icons.close, text: "Quitter le shared ride")),
               const PopupMenuItem<ActionMenu>(
-                value: ActionMenu.logout,
-                child: Text("Déconnexion"),
-              ),
+                  value: ActionMenu.logout,
+                  child: MenuItem(
+                      icon: Icons.login_outlined, text: "Déconnexion")),
             ];
           }, onSelected: (value) {
             switch (value) {
@@ -214,7 +215,7 @@ class _MapScreenState extends State<MapScreen> {
             }
           }),
       floatingActionButton: FloatingActionButton(
-          backgroundColor: Colors.blue,
+          backgroundColor: Colors.black87,
           onPressed: () => _displayMode(),
           child: _isTracking
               ? const Icon(Icons.gps_not_fixed)
@@ -252,7 +253,7 @@ class _MapScreenState extends State<MapScreen> {
           Polyline(
               polylineId: const PolylineId("ride"),
               points: decodePolylines(sharedRide),
-              color: Colors.blue,
+              color: Colors.black54,
               width: 6)
         },
         markers: _markers!,
@@ -277,7 +278,7 @@ class _MapScreenState extends State<MapScreen> {
       Text(
         overflow: TextOverflow.ellipsis,
         "$startAddress > $endAddress",
-        style: const TextStyle(fontSize: 18.0),
+        style: const TextStyle(fontSize: 18.0, color: Colors.white),
       ),
     );
   }
@@ -291,15 +292,12 @@ class _MapScreenState extends State<MapScreen> {
           gradient: LinearGradient(
               stops: const [0.02, 0.02],
               colors: _instructions == _defaultInstructions
-                  ? [Colors.red.shade800, Colors.red.shade200.withOpacity(0.6)]
-                  : [
-                      Colors.blue.withOpacity(0.6),
-                      Colors.white.withOpacity(0.6)
-                    ]),
+                  ? [Colors.red.shade800, Colors.red.shade600.withOpacity(0.6)]
+                  : [Colors.black87, Colors.black54]),
           borderRadius: const BorderRadius.all(Radius.circular(6.0))),
       child: Html(
         style: {
-          'html': Style(textAlign: TextAlign.center),
+          'html': Style(textAlign: TextAlign.center, color: Colors.white),
         },
         data: _instructions,
       ),
@@ -310,7 +308,7 @@ class _MapScreenState extends State<MapScreen> {
     return _container(
       Text(
         "$_displayedSpeed km/h",
-        style: const TextStyle(fontSize: 20.0),
+        style: const TextStyle(fontSize: 18.0, color: Colors.white),
       ),
     );
   }
@@ -319,7 +317,7 @@ class _MapScreenState extends State<MapScreen> {
     return _container(
       Text(
         _distanceToNextStep,
-        style: const TextStyle(fontSize: 20.0),
+        style: const TextStyle(fontSize: 18.0, color: Colors.white),
       ),
     );
   }
@@ -335,7 +333,7 @@ class _MapScreenState extends State<MapScreen> {
 
   BoxDecoration _boxDecoration() {
     return BoxDecoration(
-      color: Colors.blue.shade100.withOpacity(0.8),
+      color: Colors.black54,
       boxShadow: _boxShadow(),
       borderRadius: const BorderRadius.all(Radius.circular(6.0)),
     );

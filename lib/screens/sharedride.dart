@@ -8,6 +8,7 @@ import 'package:sharedride/services/sharedride_service.dart';
 
 import '../config.dart';
 import '../services/auth_service.dart';
+import 'components/menu_item.dart';
 import 'login.dart';
 import 'map.dart';
 
@@ -37,14 +38,18 @@ class _SharedRideScreenState extends ProgressibleState<SharedRideScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
+      backgroundColor: Colors.grey[300],
       appBar: AppBar(
         title: const Text(appName),
+        backgroundColor: Colors.grey[900],
         actions: [
           PopupMenuButton(itemBuilder: (context) {
             return [
               const PopupMenuItem<int>(
                 value: 0,
-                child: Text("Déconnexion"),
+                child:
+                    MenuItem(icon: Icons.login_outlined, text: "Déconnexion"),
               ),
             ];
           }, onSelected: (value) {
@@ -65,11 +70,49 @@ class _SharedRideScreenState extends ProgressibleState<SharedRideScreen> {
                 margin: const EdgeInsets.all(20.0),
                 child: Column(
                   children: [
-                    const Text(
-                      'Créer ton shared ride, ou bien rejoins en un!',
-                      style: TextStyle(fontSize: 16.0),
-                    ),
+                    const Icon(Icons.map_sharp, size: 100),
                     const SizedBox(height: 20),
+                    ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                            fixedSize: const Size.fromHeight(50),
+                            backgroundColor: Colors.black87),
+                        onPressed: () => showDialog(
+                            context: context,
+                            builder: (context) {
+                              return _buildDialog();
+                            }),
+                        child: Row(
+                          children: const [
+                            Icon(Icons.group_add),
+                            SizedBox(width: 20),
+                            Text('Rejoindre un shared ride')
+                          ],
+                        )),
+                    const SizedBox(height: 20),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      child: Row(
+                        children: [
+                          Expanded(
+                              child: Divider(
+                            thickness: 0.5,
+                            color: Colors.grey[400],
+                          )),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            child: Text(
+                              'Etapes :',
+                              style: TextStyle(color: Colors.grey[700]),
+                            ),
+                          ),
+                          Expanded(
+                              child: Divider(
+                            thickness: 0.5,
+                            color: Colors.grey[400],
+                          )),
+                        ],
+                      ),
+                    ),
                     Expanded(
                         key: UniqueKey(),
                         child: ReorderableListView.builder(
@@ -79,27 +122,31 @@ class _SharedRideScreenState extends ProgressibleState<SharedRideScreen> {
                           itemBuilder: _buildTile,
                         )),
                     const SizedBox(height: 20),
-                    ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              _steps.length > 1 ? null : Colors.grey,
-                        ),
-                        onPressed: _onCreateSharedRidePressed,
-                        child: const Text('Créer un shared ride')),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                        onPressed: () => showDialog(
-                            context: context,
-                            builder: (context) {
-                              return _buildDialog();
-                            }),
-                        child: const Text('Rejoindre un shared ride')),
+                    Column(
+                      children: [
+                        Padding(
+                            padding: const EdgeInsets.only(right: 70),
+                            child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  fixedSize: const Size.fromHeight(50),
+                                  backgroundColor: _steps.length > 1
+                                      ? Colors.black87
+                                      : Colors.grey,
+                                ),
+                                onPressed: _onCreateSharedRidePressed,
+                                child: Row(children: const [
+                                  Icon(Icons.add_road),
+                                  SizedBox(width: 20),
+                                  Text('Créer le shared ride')
+                                ]))),
+                      ],
+                    ),
                   ],
                 ),
               ),
       ),
       floatingActionButton: FloatingActionButton(
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.blueGrey.shade900,
           onPressed: () => _showInputAutoComplete(),
           child: const Icon(Icons.add)),
     );
@@ -112,12 +159,13 @@ class _SharedRideScreenState extends ProgressibleState<SharedRideScreen> {
     return ListTile(
         key: UniqueKey(),
         title: Text(_steps[index]),
+        tileColor: Colors.grey.shade200,
         leading: ReorderableDragStartListener(
           index: index,
           child: const Icon(Icons.drag_handle),
         ),
         trailing: IconButton(
-            color: Colors.red,
+            color: Colors.blueGrey,
             onPressed: () => setState(() {
                   _steps.removeAt(index);
                 }),
@@ -142,7 +190,7 @@ class _SharedRideScreenState extends ProgressibleState<SharedRideScreen> {
       ),
       actions: <Widget>[
         MaterialButton(
-          color: Colors.red,
+          color: Colors.blueGrey,
           textColor: Colors.white,
           child: const Text('Annuler'),
           onPressed: () {
@@ -152,7 +200,7 @@ class _SharedRideScreenState extends ProgressibleState<SharedRideScreen> {
           },
         ),
         MaterialButton(
-          color: Colors.green,
+          color: Colors.black87,
           textColor: Colors.white,
           child: const Text('OK'),
           onPressed: () {

@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:sharedride/models/user.dart';
+import 'package:sharedride/screens/components/button.dart';
 import 'package:sharedride/screens/progressible_state.dart';
 import 'package:sharedride/screens/sharedride.dart';
 
-import '../config.dart';
 import '../services/auth_service.dart';
 import '../utils.dart';
 import 'create_account.dart';
@@ -24,6 +24,7 @@ class _LoginFormScreenState extends ProgressibleState<LoginFormScreen> {
   @override
   void initState() {
     super.initState();
+    FocusManager.instance.primaryFocus?.unfocus();
     authenticateSavedUser().then((isConnected) {
       if (isConnected) {
         _navigateToSharedRideScreen();
@@ -43,85 +44,111 @@ class _LoginFormScreenState extends ProgressibleState<LoginFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
-      appBar: AppBar(
-        title: const Text(appName),
-      ),
-      body: Container(
-        margin: const EdgeInsets.all(20.0),
-        child: isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : Column(
-                children: [
-                  const Text("Bienvenu sur Shared Ride"),
-                  Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextFormField(
-                          controller: _usernameController,
-                          decoration: const InputDecoration(
-                            border: UnderlineInputBorder(),
-                            labelText: "Entrez votre nom d'utilisateur",
-                          ),
-                          validator: (value) {
-                            final trimmedValue = value!.trim();
-                            _usernameController.text = trimmedValue;
-                            if (!isValidUsername(trimmedValue)) {
-                              return "Ce nom d'utilisateur est invalide";
-                            }
-                            return null;
-                          },
-                        ),
-                        TextFormField(
-                          controller: _passwordController,
-                          obscureText: true,
-                          decoration: const InputDecoration(
-                            border: UnderlineInputBorder(),
-                            labelText: "Entrez votre mot de passe",
-                          ),
-                          validator: (value) {
-                            if (!isValidPassword(value)) {
-                              return "Le mot de passe ne peut pas être vide";
-                            }
-                            return null;
-                          },
-                        ),
-                        Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 16.0),
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  if (_formKey.currentState!.validate()) {
-                                    showProgress();
-                                    authenticate(User(_usernameController.text,
-                                            _passwordController.text))
-                                        .then(_manageAuthenticationResponse);
-                                  }
-                                },
-                                child: const Text('Se connecter'),
+        resizeToAvoidBottomInset: false,
+        backgroundColor: Colors.grey[300],
+        body: SafeArea(
+            child: Center(
+          child: isLoading
+              ? const CircularProgressIndicator()
+              : Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 40),
+                      const Icon(Icons.lock, size: 100),
+                      const SizedBox(height: 40),
+                      const Text("Identifiez vous"),
+                      const SizedBox(height: 20),
+                      Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TextFormField(
+                              controller: _usernameController,
+                              decoration: InputDecoration(
+                                border: const UnderlineInputBorder(),
+                                labelText: "Entrez votre nom d'utilisateur",
+                                fillColor: Colors.grey.shade200,
+                                filled: true,
                               ),
-                            )),
-                        Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 16.0),
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  _navigateToCreateAccountScreen();
-                                },
-                                child: const Text('Créer un compte'),
+                              validator: (value) {
+                                final trimmedValue = value!.trim();
+                                _usernameController.text = trimmedValue;
+                                if (!isValidUsername(trimmedValue)) {
+                                  return "Ce nom d'utilisateur est invalide";
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 20),
+                            TextFormField(
+                              controller: _passwordController,
+                              obscureText: true,
+                              decoration: InputDecoration(
+                                border: const UnderlineInputBorder(),
+                                labelText: "Entrez votre mot de passe",
+                                fillColor: Colors.grey.shade200,
+                                filled: true,
                               ),
-                            )),
-                      ],
-                    ),
+                              validator: (value) {
+                                if (!isValidPassword(value)) {
+                                  return "Le mot de passe ne peut pas être vide";
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 40),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child:
+                                  Button(onTap: _signIn, text: 'Se connecter'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      Align(
+                          alignment: Alignment.bottomCenter,
+                          child: Column(
+                            children: [
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 20),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                        child: Divider(
+                                      thickness: 0.5,
+                                      color: Colors.grey[400],
+                                    )),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10),
+                                      child: Text(
+                                        'Rejoignez nous!',
+                                        style:
+                                            TextStyle(color: Colors.grey[700]),
+                                      ),
+                                    ),
+                                    Expanded(
+                                        child: Divider(
+                                      thickness: 0.5,
+                                      color: Colors.grey[400],
+                                    )),
+                                  ],
+                                ),
+                              ),
+                              Button(
+                                onTap: _navigateToCreateAccountScreen,
+                                text: 'Créer un compte',
+                              ),
+                            ],
+                          )),
+                    ],
                   ),
-                ],
-              ),
-      ),
-    );
+                ),
+        )));
   }
 
   _manageAuthenticationResponse(bool isAuthenticated) {
@@ -135,6 +162,15 @@ class _LoginFormScreenState extends ProgressibleState<LoginFormScreen> {
         print("Echec lors de l'authentification.");
       }
       hideProgress();
+    }
+  }
+
+  _signIn() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    if (_formKey.currentState!.validate()) {
+      showProgress();
+      authenticate(User(_usernameController.text, _passwordController.text))
+          .then(_manageAuthenticationResponse);
     }
   }
 
